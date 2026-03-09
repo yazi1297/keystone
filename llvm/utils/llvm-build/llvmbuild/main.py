@@ -586,11 +586,20 @@ subdirectories = %s
 # FIXME: File a CMake RFE to get a properly supported version of this
 # feature.
 """)
-        for dep in dependencies:
+        for i, dep in enumerate(dependencies):
+            # Some downstream vendors prune LLVMBuild.txt entries; make the
+            # dependency tracking robust by only adding dependencies that exist.
+            #
+            # Also use unique outputs to avoid any edge cases with multiple
+            # configure_file() calls targeting the same path on Windows.
             f.write("""\
-configure_file(\"%s\"
-               ${CMAKE_CURRENT_BINARY_DIR}/DummyConfigureOutput)\n""" % (
-                cmake_quote_path(dep),))
+if(EXISTS \"%s\")
+  configure_file(\"%s\"
+                 ${CMAKE_CURRENT_BINARY_DIR}/DummyConfigureOutput-%d)
+endif()\n""" % (
+                cmake_quote_path(dep),
+                cmake_quote_path(dep),
+                i))
 
         # Write the properties we use to encode the required library dependency
         # information in a form CMake can easily use directly.
